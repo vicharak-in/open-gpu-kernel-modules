@@ -2061,8 +2061,8 @@ _kgspRpcIncrementTimeoutCountAndRateLimitPrints
 {
     pRpc->timeoutCount++;
 
-    if ((pRpc->timeoutCount == (RPC_TIMEOUT_LIMIT_PRINT_RATE_THRESH + 1)) &&
-        (RPC_TIMEOUT_LIMIT_PRINT_RATE_SKIP > 0))
+    if ((pRpc->timeoutCount == (RPC_TIMEOUT_GPU_RESET_THRESHOLD + 1)) &&
+        (RPC_TIMEOUT_PRINT_RATE_SKIP > 0))
     {
         // make sure we warn Xid and NV_PRINTF/NVLOG consumers that we are rate limiting prints
         if (GPU_GET_KERNEL_RC(pGpu)->bLogEvents)
@@ -2072,15 +2072,15 @@ _kgspRpcIncrementTimeoutCountAndRateLimitPrints
                 gpuGetDomain(pGpu),
                 gpuGetBus(pGpu),
                 gpuGetDevice(pGpu),
-                RPC_TIMEOUT_LIMIT_PRINT_RATE_SKIP + 1);
+                RPC_TIMEOUT_PRINT_RATE_SKIP + 1);
         }
         NV_PRINTF(LEVEL_WARNING,
                   "Rate limiting GSP RPC error prints (printing 1 of every %d)\n",
-                  RPC_TIMEOUT_LIMIT_PRINT_RATE_SKIP + 1);
+                  RPC_TIMEOUT_PRINT_RATE_SKIP + 1);
     }
 
-    pRpc->bQuietPrints = ((pRpc->timeoutCount > RPC_TIMEOUT_LIMIT_PRINT_RATE_THRESH) &&
-                          ((pRpc->timeoutCount % (RPC_TIMEOUT_LIMIT_PRINT_RATE_SKIP + 1)) != 0));
+    pRpc->bQuietPrints = ((pRpc->timeoutCount > RPC_TIMEOUT_GPU_RESET_THRESHOLD) &&
+                          ((pRpc->timeoutCount % (RPC_TIMEOUT_PRINT_RATE_SKIP + 1)) != 0));
 }
 
 /*!
@@ -2226,6 +2226,22 @@ _kgspRpcRecvPoll
             if (!pRpc->bQuietPrints)
             {
                 _kgspLogXid119(pGpu, pRpc, expectedFunc, expectedSequence);
+            }
+
+            // Detect for 3 back to back GSP RPC timeout
+            if (pRpc->timeoutCount == RPC_TIMEOUT_GPU_RESET_THRESHOLD)
+            {
+                // GSP is completely stalled and cannot be recovered. Mark the GPU for reset.
+                NV_ASSERT_FAILED("Back to back GSP RPC timeout detected! GPU marked for reset");
+                gpuMarkDeviceForReset(pGpu);
+                pKernelGsp->bFatalError = NV_TRUE;
+
+                // For Windows, if TDR is supported, trigger TDR to recover the system.
+                if (pGpu->getProperty(pGpu, PDB_PROP_GPU_SUPPORTS_TDR_EVENT))
+                {
+                    NV_ASSERT_FAILED("Triggering TDR to recover from GSP hang");
+                    gpuNotifySubDeviceEvent(pGpu, NV2080_NOTIFIERS_UCODE_RESET, NULL, 0, 0, 0);
+                }
             }
 
             goto done;

@@ -1856,7 +1856,7 @@ static NV_STATUS _issueRpcLarge
     // Set the correct length for this queue entry.
     vgpu_rpc_message_header_v->length = entryLength;
 
-    nvStatus = rpcSendMessage(pGpu, pRpc, &firstSequence);
+    nvStatus = rpcSendMessage(pGpu, pRpc, &lastSequence);
     if (nvStatus != NV_OK)
     {
         NV_PRINTF(LEVEL_ERROR, "rpcSendMessage failed with status 0x%08x for fn %d!\n",
