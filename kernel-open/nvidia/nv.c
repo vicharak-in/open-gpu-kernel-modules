@@ -2423,6 +2423,12 @@ nvidia_ioctl(
     {
         nv_ioctl_wait_open_complete_t *params = arg_copy;
 
+        if (arg_size != sizeof(nv_ioctl_wait_open_complete_t))
+        {
+            status = -EINVAL;
+            goto done_early;
+        }
+
         params->rc = nvlfp->open_rc;
         params->adapterStatus = nvlfp->adapter_status;
         goto done_early;
@@ -2503,8 +2509,12 @@ nvidia_ioctl(
                 goto done;
             }
 
+            /* atomically check and alloc attached_gpus */
+            down(&nvl->ldata_lock);
+
             if (nvlfp->num_attached_gpus != 0)
             {
+                up(&nvl->ldata_lock);
                 status = -EINVAL;
                 goto done;
             }
@@ -2512,11 +2522,14 @@ nvidia_ioctl(
             NV_KMALLOC(nvlfp->attached_gpus, arg_size);
             if (nvlfp->attached_gpus == NULL)
             {
+                up(&nvl->ldata_lock);
                 status = -ENOMEM;
                 goto done;
             }
             memcpy(nvlfp->attached_gpus, arg_copy, arg_size);
             nvlfp->num_attached_gpus = num_arg_gpus;
+
+            up(&nvl->ldata_lock);
 
             for (i = 0; i < nvlfp->num_attached_gpus; i++)
             {
@@ -2533,8 +2546,13 @@ nvidia_ioctl(
                             nvidia_dev_put(nvlfp->attached_gpus[i], sp);
                     }
 
+                    /* atomically free attached_gpus */
+                    down(&nvl->ldata_lock);
+
                     NV_KFREE(nvlfp->attached_gpus, arg_size);
                     nvlfp->num_attached_gpus = 0;
+
+                    up(&nvl->ldata_lock);
 
                     status = -EINVAL;
                     break;
