@@ -602,6 +602,110 @@ void threadStateInit(THREAD_STATE_NODE *pThreadNode, NvU32 flags)
 }
 
 /**
+ *
+ * @brief Allocate a heap-based threadState
+ * @param[in] flags Thread state flags
+ *
+ * @return Heap-allocated THREAD_STATE_NODE* on success, NULL on failure
+ */
+THREAD_STATE_NODE* threadStateAlloc(NvU32 flags)
+{
+    THREAD_STATE_NODE *pHeapNode;
+    NV_STATUS rmStatus;
+    NvU64 funcAddr;
+
+    // Isrs should be using threadStateIsrInit().
+    NV_ASSERT((flags & (THREAD_STATE_FLAGS_IS_ISR_LOCKLESS |
+                        THREAD_STATE_FLAGS_IS_ISR |
+                        THREAD_STATE_FLAGS_DEFERRED_INT_HANDLER_RUNNING)) == 0);
+
+    // Check to see if ThreadState is enabled
+    if (!(threadStateDatabase.setupFlags & THREAD_STATE_SETUP_FLAGS_ENABLED))
+        return NULL;
+
+    // Allocate heap node directly
+    pHeapNode = portMemAllocNonPaged(sizeof(THREAD_STATE_NODE));
+    if (pHeapNode == NULL)
+        return NULL;
+
+    portMemSet(pHeapNode, 0, sizeof(*pHeapNode));
+    pHeapNode->threadSeqId = portAtomicIncrementU32(&threadStateDatabase.threadSeqCntr);
+    pHeapNode->cpuNum = osGetCurrentProcessorNumber();
+    pHeapNode->bUsingHeap = NV_TRUE;
+    pHeapNode->flags = flags;
+
+    //
+    // The thread state free callbacks are only supported in the non-ISR paths
+    // as they invoke memory allocation routines.
+    //
+    listInit(&pHeapNode->cbList, portMemAllocatorGetGlobalNonPaged());
+    pHeapNode->flags |= THREAD_STATE_FLAGS_STATE_FREE_CB_ENABLED;
+
+    rmStatus = _threadNodeInitTime(pHeapNode);
+    if (rmStatus == NV_OK)
+        pHeapNode->flags |= THREAD_STATE_FLAGS_TIMEOUT_INITED;
+
+    rmStatus = osGetCurrentThread(&pHeapNode->threadId);
+    if (rmStatus != NV_OK)
+        goto cleanup_heap;
+
+    NV_ASSERT_OR_GOTO(pHeapNode->cpuNum < threadStateDatabase.maxCPUs, cleanup_heap);
+
+    funcAddr = (NvU64) (NV_RETURN_ADDRESS());
+
+    portSyncSpinlockAcquire(threadStateDatabase.spinlock);
+    if (!mapInsertExisting(&threadStateDatabase.dbRoot, (NvU64)pHeapNode->threadId, pHeapNode))
+    {
+        rmStatus = NV_ERR_OBJECT_NOT_FOUND;
+        // Place in the Preempted List if threadId is already present in the API list
+        if (mapInsertExisting(&threadStateDatabase.dbRootPreempted, (NvU64)pHeapNode->threadId, pHeapNode))
+        {
+            pHeapNode->flags |= THREAD_STATE_FLAGS_PLACED_ON_PREEMPT_LIST;
+            pHeapNode->bValid = NV_TRUE;
+            rmStatus = NV_OK;
+        }
+        else
+        {
+            // Reset the threadId as insertion failed on both maps. bValid is already NV_FALSE
+            pHeapNode->threadId = 0;
+            portSyncSpinlockRelease(threadStateDatabase.spinlock);
+            goto cleanup_heap;
+        }
+    }
+    else
+    {
+        pHeapNode->bValid = NV_TRUE;
+        rmStatus = NV_OK;
+    }
+
+    _threadStateLogInitCaller(pHeapNode, funcAddr);
+
+    portSyncSpinlockRelease(threadStateDatabase.spinlock);
+
+    _threadStatePrintInfo(pHeapNode);
+
+    NV_ASSERT(rmStatus == NV_OK);
+    threadPriorityStateAlloc();
+
+    if (TLS_MIRROR_THREADSTATE)
+    {
+        THREAD_STATE_NODE **pTls = (THREAD_STATE_NODE **)tlsEntryAcquire(TLS_ENTRY_ID_THREADSTATE);
+        NV_ASSERT_OR_GOTO(pTls != NULL, cleanup_heap);
+        if (*pTls != NULL)
+        {
+            NV_PRINTF(LEVEL_WARNING,
+                      "TLS: Nested threadState inits detected. Previous threadState node is %p, new is %p\n",
+                      *pTls, pHeapNode);
+        }
+        *pTls = pHeapNode;
+    }
+    return pHeapNode;
+
+cleanup_heap:
+    portMemFree(pHeapNode);
+    return NULL;
+}
+/**
  * @brief Initialize a threadState for locked ISR and Bottom-half
  *
  * @param[in/out] pThreadNode
@@ -862,6 +966,12 @@ void threadStateFree(THREAD_STATE_NODE *pThreadNode, NvU32 flags)
                      "TLS: tlsEntryRelease returned %d (this is likely due to nested threadStateInit() calls)\n",
                      r);
         }
+    }
+
+     // Free heap memory if this node was heap-allocated
+    if (pThreadNode->bUsingHeap)
+    {
+        portMemFree(pThreadNode);
     }
 }
 

@@ -76,6 +76,7 @@ struct THREAD_STATE_NODE
      */
     NvU32                threadSeqId;
     NvBool               bValid;
+    NvBool               bUsingHeap;
     THREAD_TIMEOUT_STATE timeout;
     NvU32                cpuNum;
     NvU32                flags;
@@ -199,6 +200,7 @@ void        threadStateFreeISRLockless(THREAD_STATE_NODE *, OBJGPU*, NvU32);
 void        threadStateInitISRAndDeferredIntHandler(THREAD_STATE_NODE *, OBJGPU*, NvU32);
 void        threadStateFreeISRAndDeferredIntHandler(THREAD_STATE_NODE *, OBJGPU*, NvU32);
 void        threadStateInit(THREAD_STATE_NODE *pThreadNode, NvU32 flags);
+THREAD_STATE_NODE* threadStateAlloc(NvU32 flags);
 void        threadStateFree(THREAD_STATE_NODE *pThreadNode, NvU32 flags);
 
 NV_STATUS   threadStateGetCurrent(THREAD_STATE_NODE **ppThreadNode, OBJGPU *pGpu);

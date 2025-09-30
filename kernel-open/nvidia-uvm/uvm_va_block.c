@@ -11519,6 +11519,11 @@ NV_STATUS uvm_va_block_evict_chunks(uvm_va_block_t *va_block,
         return NV_ERR_NO_MEMORY;
     }
 
+    if (uvm_va_block_is_hmm(va_block)) {
+        memset(block_context->hmm.src_pfns, 0, sizeof(block_context->hmm.src_pfns));
+        memset(block_context->hmm.dst_pfns, 0, sizeof(block_context->hmm.dst_pfns));
+    }
+
     pages_to_evict = &block_context->caller_page_mask;
     uvm_page_mask_zero(pages_to_evict);
     chunk_region.outer = 0;

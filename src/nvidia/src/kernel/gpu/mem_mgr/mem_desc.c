@@ -231,6 +231,11 @@ memdescCreate
 
     allocSize = Size;
 
+    if (allocSize == 0)
+    {
+        return NV_ERR_INVALID_ARGUMENT;
+    }
+
     //
     // this memdesc may have gotten forced to sysmem if no carveout,
     // but for VPR it needs to be in vidmem, so check and re-direct here,
@@ -301,16 +306,7 @@ memdescCreate
     // (4k >> 12 = 1). This modification helps us to avoid overflow of variable
     // allocSize, in case caller of this function passes highest value of NvU64.
     //
-    // If allocSize is passed as 0, PageCount should be returned as 0.
-    //
-    if (allocSize == 0)
-    {
-        PageCount = 0;
-    }
-    else
-    {
-        PageCount = ((allocSize - 1) >> RM_PAGE_SHIFT) + 1;
-    }
+    PageCount = ((allocSize - 1) >> RM_PAGE_SHIFT) + 1;
 
     if (PhysicallyContiguous)
     {
