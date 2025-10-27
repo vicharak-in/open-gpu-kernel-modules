@@ -651,7 +651,7 @@ static void ReadAndApplyEdidEvo(
     if (pParams != NULL) {
         pParams->reply.edid.valid = readSuccess;
     }
-
+    
     if (EdidHasChanged(pDpyEvo, &edid, pParsedEdid)) {
         /*
          * Do not plumb pRequest into ApplyNewEdid().  This helps ensure that
@@ -666,18 +666,29 @@ static void ReadAndApplyEdidEvo(
     } else {
         nvFree(edid.buffer);
 
-        if (nvDpyIsHdmiEvo(pDpyEvo) &&
+        if (pDpyEvo->hotplugged) {
+            /*
+             * If the display has an unhandled hotplug, re-probe
+             * the maximum pixel clock. This can change even if the
+             * EDID remains the same if e.g. the display becomes FRL
+             * capable, a passive DP adapter is being used, etc. 
+             * Note that this also takes care of HDMI FRL link re-assessment
+             * on hotplugs.
+             */
+            nvDpyProbeMaxPixelClock(pDpyEvo);
+        } else if (nvDpyIsHdmiEvo(pDpyEvo) &&
             nvHdmiDpySupportsFrl(pDpyEvo) &&
             pDpyEvo->hdmi.reassessFrlLinkCaps) {
             /*
-             * Although there’s no change in EDID, if there was a HPD or
-             * re-training request, reassess the FRL Link.
+             * Although there’s no change in EDID and no hotplug, if there was 
+             * still a re-training request, reassess the FRL link.
              */
             nvHdmiFrlAssessLink(pDpyEvo);
         }
     }
 
     pDpyEvo->hdmi.reassessFrlLinkCaps = FALSE;
+    pDpyEvo->hotplugged = FALSE;
 
     nvFree(pParsedEdid);
 }
