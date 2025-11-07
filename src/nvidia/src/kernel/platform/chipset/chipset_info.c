@@ -1351,6 +1351,19 @@ Ampere_AmpereOne_setupFunc
     return NV_OK;
 }
 
+// Rockchip RK3588 Setup Function
+static NV_STATUS
+Rockchip_RK3588_setupFunc
+(
+    OBJCL *pCl
+)
+{
+    // TODO Need to check if any more PDB properties should be set
+    pCl->setProperty(pCl, PDB_PROP_CL_IS_CHIPSET_IO_COHERENT, NV_FALSE);
+
+    return NV_OK;
+}
+
 void
 csGetInfoStrings
 (
