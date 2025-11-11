@@ -3503,14 +3503,15 @@ _kgspPrepareScrubberImageIfNeeded(OBJGPU *pGpu, KernelGsp *pKernelGsp)
     // Prepare Scrubber ucode image if pre-scrubbed memory is insufficient
     NvU64 neededSize = pKernelGsp->pWprMeta->fbSize - pKernelGsp->pWprMeta->gspFwRsvdStart;
     NvU64 prescrubbedSize = kgspGetPrescrubbedTopFbSize(pGpu, pKernelGsp);
-    NV_PRINTF(LEVEL_INFO, "pre-scrubbed memory: 0x%llx bytes, needed: 0x%llx bytes\n",
+    NV_PRINTF(LEVEL_ERROR, "pre-scrubbed memory: 0x%llx bytes, needed: 0x%llx bytes\n",
               prescrubbedSize, neededSize);
 
     // WAR for Bug 5016200 - Always run scrubber from kernel RM for ADA config
-    if ((neededSize > prescrubbedSize) || kgspIsScrubberImageSupported(pGpu, pKernelGsp))
+    if ((neededSize > prescrubbedSize) || kgspIsScrubberImageSupported(pGpu, pKernelGsp)){
+	
         NV_CHECK_OK_OR_RETURN(LEVEL_ERROR,
             kgspAllocateScrubberUcodeImage(pGpu, pKernelGsp, &pKernelGsp->pScrubberUcode));
-
+}
     return NV_OK;
 }
 
@@ -3642,6 +3643,7 @@ _kgspBootGspRm(OBJGPU *pGpu, KernelGsp *pKernelGsp, GSP_FIRMWARE *pGspFw, GPU_MA
 
     NV_ASSERT_OR_RETURN(pbRetry != NULL, NV_ERR_INVALID_ARGUMENT);
     *pbRetry = NV_FALSE;
+	NV_PRINTF(LEVEL_ERROR, "booting gspRM 1\n");
 
     // Fail early if WPR2 is up
     if (kgspIsWpr2Up_HAL(pGpu, pKernelGsp) &&
@@ -3651,22 +3653,28 @@ _kgspBootGspRm(OBJGPU *pGpu, KernelGsp *pKernelGsp, GSP_FIRMWARE *pGspFw, GPU_MA
         NV_PRINTF(LEVEL_ERROR, "(the GPU is likely in a bad state and may need to be reset)\n");
         return NV_ERR_INVALID_STATE;
     }
-
+	NV_PRINTF(LEVEL_ERROR, "booting gspRM 2\n");
     // Populate WPR meta structure (requires knowing FB size on dGPU, which depends on GFW_BOOT)
     NV_CHECK_OK_OR_RETURN(LEVEL_ERROR, kgspPopulateWprMeta_HAL(pGpu, pKernelGsp, pGspFw));
 
     {
+	NV_PRINTF(LEVEL_ERROR, "booting gspRM 3\n");
+
         // If the new FB layout requires a scrubber ucode to scrub additional space, prepare it now
         NV_CHECK_OK_OR_RETURN(LEVEL_ERROR, _kgspPrepareScrubberImageIfNeeded(pGpu, pKernelGsp));
     }
+	NV_PRINTF(LEVEL_ERROR, "booting gspRM 4\n");
 
     // Setup arguments for bootstrapping GSP
     NV_CHECK_OK_OR_RETURN(LEVEL_ERROR, kgspPrepareForBootstrap_HAL(pGpu, pKernelGsp, KGSP_BOOT_MODE_NORMAL));
+NV_PRINTF(LEVEL_ERROR, "booting gspRM 5\n");
 
     // Release the API lock if relaxed locking for parallel init is enabled
     NvBool bRelaxedLocking = _kgspShouldRelaxGspInitLocking(pGpu);
     if (bRelaxedLocking)
         rmapiLockRelease();
+
+NV_PRINTF(LEVEL_ERROR, "booting gspRM 6\n");
 
     if ((pKernelGsp->bootAttempts > 0) && bEccDisabled)
     {
@@ -3680,10 +3688,13 @@ _kgspBootGspRm(OBJGPU *pGpu, KernelGsp *pKernelGsp, GSP_FIRMWARE *pGspFw, GPU_MA
 
     // Proceed with GSP boot
     status = kgspBootstrap_HAL(pGpu, pKernelGsp, KGSP_BOOT_MODE_NORMAL);
+	NV_PRINTF(LEVEL_ERROR, "kgspBootstrap_HAL status is %d\n", status);
+NV_PRINTF(LEVEL_ERROR, "booting gspRM 7\n");
 
     if (status != NV_OK && !pGpu->getProperty(pGpu, PDB_PROP_GPU_ZERO_FB))
     {
         // Increment the bootAttempt counter only on failure to boot GSP
+NV_PRINTF(LEVEL_ERROR, "booting gspRM 8\n");
         pKernelGsp->bootAttempts++;
         if (gpuCheckEccCounts_HAL(pGpu) || (bEccDisabled && !hypervisorIsVgxHyper()))
         {
@@ -3739,12 +3750,14 @@ kgspInitRm_IMPL
     }
 
     pKernelGsp->bInInit = NV_TRUE;
-
+NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 1 \n");
     // Need to hold the GPU instance lock in order to write to the RPC queue
     NV_ASSERT_OK_OR_GOTO(status,
         rmGpuGroupLockAcquire(pGpu->gpuInstance, GPU_LOCK_GRP_SUBDEVICE,
                               GPUS_LOCK_FLAGS_NONE, RM_LOCK_MODULES_INIT, &gpusLockedMask),
         done);
+
+		NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 2 \n");
 
     /*
      * For GSP-RM boot, we must trigger FRTS (if it exists for the chip)
@@ -3755,6 +3768,7 @@ kgspInitRm_IMPL
      */
     if (pKernelGsp->pFwsecUcode == NULL)
     {
+	NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 3 \n");
         KernelGspVbiosImg *pVbiosImg = NULL;
 
         // Start VBIOS version string as "unknown"
@@ -3763,8 +3777,8 @@ kgspInitRm_IMPL
         // Try and extract a VBIOS image.
         status = kgspExtractVbiosFromRom_HAL(pGpu, pKernelGsp, &pVbiosImg);
 
-        if (status == NV_OK)
-        {
+        if (status == NV_OK){
+			 NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 4 \n");
             NvU64 vbiosVersionCombined = 0;
 
             // Got a VBIOS image, now parse it for FWSEC.
@@ -3774,6 +3788,7 @@ kgspInitRm_IMPL
 
             if (vbiosVersionCombined > 0)
             {
+			NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 5 \n");
                 _kgspVbiosVersionToStr(vbiosVersionCombined, pKernelGsp->vbiosVersionStr, sizeof(pKernelGsp->vbiosVersionStr));
             }
 
@@ -3789,6 +3804,7 @@ kgspInitRm_IMPL
         else if (status == NV_ERR_NOT_SUPPORTED)
         {
             // Extracting VBIOS image from ROM is not supported.
+			NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 6 \n");
             status = NV_OK;
         }
         else
@@ -3815,11 +3831,13 @@ kgspInitRm_IMPL
         // The secure boot ucode is included in the partitioned FMC, no need for
         // separate Booter ucodes.
         //
+		NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 7 \n");
     }
     else
     {
         if (pKernelGsp->pBooterLoadUcode == NULL)
         {
+		NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 8 \n");
             status = kgspAllocateBooterLoadUcodeImage(pGpu, pKernelGsp,
                                                       &pKernelGsp->pBooterLoadUcode);
             if (status != NV_OK)
@@ -3840,7 +3858,7 @@ kgspInitRm_IMPL
             }
         }
     }
-
+NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 9 \n");
     // Prepare boot binary image.
     status = kgspPrepareBootBinaryImage(pGpu, pKernelGsp);
     if (status != NV_OK)
@@ -3849,7 +3867,7 @@ kgspInitRm_IMPL
         goto done;
     }
 
-    // Prepare GSP-RM image.
+    // Prepare GSP-RM image
     status = _kgspPrepareGspRmBinaryImage(pGpu, pKernelGsp, pGspFw);
     if (status != NV_OK)
     {
@@ -3865,14 +3883,17 @@ kgspInitRm_IMPL
         goto done;
     }
 
+NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 10 \n");
     NV_CHECK_OK_OR_GOTO(status, LEVEL_ERROR, _kgspInitLibosLogDecoder(pGpu, pKernelGsp, pGspFw), done);
-
+NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 11\n");
     NV_CHECK_OK_OR_GOTO(status, LEVEL_ERROR, nvlogRegisterFlushCb(kgspNvlogFlushCb, pKernelGsp), done);
 
+NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 12 \n");
     // Reset thread state timeout and wait for GFW_BOOT OK status
     threadStateResetTimeout(pGpu);
     NV_CHECK_OK_OR_GOTO(status, LEVEL_ERROR, kgspWaitForGfwBootOk_HAL(pGpu, pKernelGsp), done);
 
+NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 13 \n");
     //
     // Set the GPU time to the wall-clock time after GFW boot is complete
     // (to avoid PLM collisions) but before loading GSP-RM ucode (which
@@ -3956,7 +3977,8 @@ kgspInitRm_IMPL
         // attempts may fail.
         //
         status = _kgspBootGspRm(pGpu, pKernelGsp, pGspFw, &gpusLockedMask, &bRetry);
-
+		NV_PRINTF(LEVEL_ERROR, "status of bootgsp is %d\n", status);
+		NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 14 \n");
         //
         // _kgspBootGspRm() may temporarily release locks to facilitate parallel GSP bootstrap on
         // other GPUs. It is responsible for reacquiring them in the proper order. If there is a
@@ -3972,6 +3994,7 @@ kgspInitRm_IMPL
 
     if (status != NV_OK)
     {
+		NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 15 \n");
         if (status == NV_ERR_INSUFFICIENT_POWER)
         {
             OBJSYS *pSys = SYS_GET_INSTANCE();

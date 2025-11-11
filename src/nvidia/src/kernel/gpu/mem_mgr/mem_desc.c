@@ -1817,6 +1817,7 @@ memdescMap
 
     NV_ASSERT_OR_RETURN(!memdescHasSubDeviceMemDescs(pMemDesc), NV_ERR_INVALID_OBJECT_BUFFER);
 
+	NV_PRINTF(LEVEL_ERROR, "inside memdescMap \n");
     switch (pMemDesc->_addressSpace)
     {
         case ADDR_SYSMEM:
@@ -1824,10 +1825,15 @@ memdescMap
         {
             status = osMapSystemMemory(pMemDesc, Offset, Size,
                                        Kernel, Protect, pAddress, pPriv);
+
+NV_PRINTF(LEVEL_ERROR, "osMapSystemMemory EGM offset: %llu\n, size: %llu \n, pAddress: %p, pPriv: %p\n", Offset, Size, pAddress, pPriv);
+				NV_PRINTF(LEVEL_ERROR, "ADDR_EGM status %d\n",status);
             if (status != NV_OK)
             {
+				NV_PRINTF(LEVEL_ERROR, "ADDR_EGM status is not okay\n");
                 return status;
             }
+				NV_PRINTF(LEVEL_ERROR, "ADDR_EGM status is okay\n");
             break;
         }
 
@@ -1844,18 +1850,22 @@ memdescMap
 
             pKernelBus = GPU_GET_KERNEL_BUS(pGpu);
             bCoherentCpuMapping = pGpu->getProperty(pGpu, PDB_PROP_GPU_COHERENT_CPU_MAPPING);
+				NV_PRINTF(LEVEL_ERROR, "ADDR_FBMEM \n");
 
             // Need struct to keep track of the info for this mapping
             pMapping = portMemAllocNonPaged(sizeof(FB_MAPPING_INFO));
             if (pMapping == NULL)
             {
+				NV_PRINTF(LEVEL_ERROR, "portMemAllocNonPaged failed \n");
                 return NV_ERR_NO_MEMORY;
             }
 
             if (bCoherentCpuMapping)
             {
+					NV_PRINTF(LEVEL_ERROR, "bCoherentCpuMapping\n");			
                 if (Kernel)
                 {
+
                     status = kbusMapCoherentCpuMapping_HAL(pGpu,
                                                            pKernelBus,
                                                            pMemDesc,
@@ -1864,9 +1874,13 @@ memdescMap
                                                            Protect,
                                                            pAddress,
                                                            &pMapping->pPriv);
-                }
+                	NV_PRINTF(LEVEL_ERROR, "bCoherent kernel status is %d\n", status);			
+					
+				}
                 else
                 {
+					NV_PRINTF(LEVEL_ERROR, "bCoherentCpuMapping !kernel\n");			
+
                     KernelMemorySystem *pKernelMemorySystem = GPU_GET_KERNEL_MEMORY_SYSTEM(pGpu);
                     NvU64              fbOffset             = memdescGetPhysAddr(pMemDesc, AT_CPU, Offset);
                     bar1PhysAddr = pKernelMemorySystem->coherentCpuFbBase + fbOffset;
@@ -1878,11 +1892,13 @@ memdescMap
 
                 if (status != NV_OK)
                 {
+						NV_PRINTF(LEVEL_ERROR, "bCoherentCpuMapping status is not okay\n");			
+
                     portMemFree(pMapping);
                     return status;
                 }
 
-                NV_PRINTF(LEVEL_INFO, "Allocating coherent link mapping. VA: %p PA: 0x%llx size: 0x%llx\n",
+                NV_PRINTF(LEVEL_ERROR, "Allocating coherent link mapping. VA: %p PA: 0x%llx size: 0x%llx\n",
                           NvP64_VALUE(*pAddress),
                           memdescGetPhysAddr(pMemDesc, AT_GPU, Offset), Size);
 
@@ -1898,6 +1914,9 @@ memdescMap
                                              &pMapping->FbApertureLen,
                                              BUS_MAP_FB_FLAGS_MAP_UNICAST,
                                              NULL);
+
+			NV_PRINTF(LEVEL_ERROR, "mapping BAR 1 status :%d\n", status);			
+
             if (status != NV_OK)
             {
                 portMemFree(pMapping);
@@ -1910,9 +1929,12 @@ memdescMap
             // Create the mapping
             if (Kernel)
             {
+
                 status = osMapPciMemoryKernel64(pGpu, bar1PhysAddr,
                                                 Size, Protect, pAddress,
                                                 mode);
+
+				NV_PRINTF(LEVEL_ERROR, "created mapping kernel , mapping pcie memory , status %d\n", status);			
             }
             else
             {
@@ -1920,10 +1942,13 @@ memdescMap
                                             Size, Protect, pAddress,
                                             &pMapping->pPriv,
                                             mode);
+
+				NV_PRINTF(LEVEL_ERROR, "created mapping user , mapping pcie memory, status %d\n", status);			
             }
 
             if (status != NV_OK)
             {
+				NV_PRINTF(LEVEL_ERROR, "pcie mapping failed \n");
                 if (!bCoherentCpuMapping)
                 {
                     kbusUnmapFbApertureSingle(pGpu, pKernelBus, pMemDesc,
@@ -2157,8 +2182,10 @@ memdescMapInternal
 
     // We need to flush & invalidate GPU L2 cache only for directed BAR mappings.
     // Reflected BAR mappings will access memory via GPU, and hence go through GPU L2 cache.
-    if (mapType == MEMDESC_MAP_INTERNAL_TYPE_SYSMEM_DIRECT)
+    if (mapType == MEMDESC_MAP_INTERNAL_TYPE_SYSMEM_DIRECT){
         memdescFlushGpuCaches(pGpu, pMemDesc);
+		NV_PRINTF(LEVEL_ERROR, "map type is %d\n", MEMDESC_MAP_INTERNAL_TYPE_SYSMEM_DIRECT);
+		}
 
     if (pMemDesc->_pInternalMapping != NULL)
     {
@@ -2167,6 +2194,7 @@ memdescMapInternal
         // Existing BAR2 mapping may be invalid due to GPU reset
         if (mapType == MEMDESC_MAP_INTERNAL_TYPE_BAR2)
         {
+		NV_PRINTF(LEVEL_ERROR, "map type is %d\n", mapType);
             pMemDesc->_pInternalMapping = kbusValidateBar2ApertureMapping_HAL(pGpu, GPU_GET_KERNEL_BUS(pGpu), pMemDesc,
                                                                               pMemDesc->_pInternalMapping);
             NV_CHECK_OR_RETURN(LEVEL_ERROR, pMemDesc->_pInternalMapping != NULL, NULL);
@@ -2184,6 +2212,7 @@ memdescMapInternal
             status = memdescMapOld(pMemDesc, 0, pMemDesc->Size, NV_TRUE, NV_PROTECT_READ_WRITE,
                                    &pMemDesc->_pInternalMapping, &pMemDesc->_pInternalMappingPriv);
             NV_CHECK_OR_RETURN(LEVEL_ERROR, status == NV_OK, NULL);
+			NV_PRINTF(LEVEL_ERROR, "memdescMapOld status is %d\n", status);
             break;
         }
         case MEMDESC_MAP_INTERNAL_TYPE_COHERENT_FBMEM:

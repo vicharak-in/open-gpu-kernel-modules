@@ -390,9 +390,13 @@ s_prepareForFwsec_TU102
         }
         pMappedData = pMappedImage + pUcode->dataOffset;
 
+		NV_PRINTF(LEVEL_ERROR, "calling s_vbiosPatchInterfaceData is %d\n", status);
+
+
         status = s_vbiosPatchInterfaceData(pMappedData, pUcode->dmemSize, cmd,
                                            pCmdBuffer, cmdBufferSize, pUcode->interfaceOffset);
 
+		NV_PRINTF(LEVEL_ERROR, "status of v_biosPatch interface data is %d\n", status);
         portMemCopy(pMappedData + pUcode->hsSigDmemAddr, pUcode->sigSize,
                     ((NvU8 *) pUcode->pSignatures) + sigOffset, pUcode->sigSize);
 
