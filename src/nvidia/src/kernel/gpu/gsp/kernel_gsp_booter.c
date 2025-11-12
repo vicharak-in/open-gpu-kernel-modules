@@ -477,14 +477,16 @@ kgspAllocateScrubberUcodeImage_IMPL
     KernelGspFlcnUcode **ppScrubberUcode  // out
 )
 {
+	NV_PRINTF(LEVEL_ERROR, "inside kgspAllocateScrubberUcodeImage_IMPL \n");
     KernelSec2 *pKernelSec2 = GPU_GET_KERNEL_SEC2(pGpu);
     const BINDATA_ARCHIVE *pBinArchive;
 
     NV_ASSERT_OR_RETURN(pKernelSec2 != NULL, NV_ERR_INVALID_STATE);
     NV_ASSERT_OR_RETURN(ppScrubberUcode != NULL, NV_ERR_INVALID_ARGUMENT);
-
+	NV_PRINTF(LEVEL_ERROR, "asserts passed \n");
     pBinArchive = ksec2GetBinArchiveSecurescrubUcode_HAL(pGpu, pKernelSec2);
     NV_ASSERT_OR_RETURN(pBinArchive != NULL, NV_ERR_NOT_SUPPORTED);
+	NV_PRINTF(LEVEL_ERROR, "pBinArchive is not NULL\n");
 
     return s_allocateUcodeFromBinArchive(pGpu, pKernelGsp, pBinArchive, ppScrubberUcode);
 }

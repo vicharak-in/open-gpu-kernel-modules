@@ -664,10 +664,13 @@ static void __nvoc_init_funcTable_KernelSec2_1(KernelSec2 *pThis, GpuHalspecOwne
         if (( ((chipHal_HalVarIdx >> 5) == 1UL) && ((1UL << (chipHal_HalVarIdx & 0x1f)) & 0x01f00000UL) )) /* ChipHal: AD102 | AD103 | AD104 | AD106 | AD107 */ 
         {
             pThis->__ksec2GetBinArchiveSecurescrubUcode__ = &ksec2GetBinArchiveSecurescrubUcode_AD10X;
+	    NV_PRINTF(LEVEL_ERROR, "calling ada architecture \n");
         }
         else
         {
             pThis->__ksec2GetBinArchiveSecurescrubUcode__ = &ksec2GetBinArchiveSecurescrubUcode_80f438;
+		NV_PRINTF(LEVEL_ERROR, "calling 80f438 architecture \n");
+
         }
     }
 

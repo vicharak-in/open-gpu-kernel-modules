@@ -498,12 +498,15 @@ kgspBootstrap_TU102
     NV_STATUS status;
     KernelFalcon *pKernelFalcon = staticCast(pKernelGsp, KernelFalcon);
 
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 1\n");
     // Execute Scrubber if needed
     if (((bootMode == KGSP_BOOT_MODE_SR_RESUME) || (bootMode == KGSP_BOOT_MODE_NORMAL)) &&
         (pKernelGsp->pScrubberUcode != NULL))
     {
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 2v\n");
         NV_ASSERT_OK_OR_RETURN(kgspExecuteScrubberIfNeeded_HAL(pGpu, pKernelGsp));
     }
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 3v\n");
 
     //
     // For normal boot, additional setup is necessary.
@@ -511,25 +514,34 @@ kgspBootstrap_TU102
     //
     if (bootMode == KGSP_BOOT_MODE_NORMAL)
     {
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 4\n");
+
         // Execute FWSEC to setup FRTS if we have a FRTS region.
         if (kgspGetFrtsSize_HAL(pGpu, pKernelGsp) > 0)
         {
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 5\n");
+
             NV_ASSERT_OR_RETURN(pKernelGsp->pPreparedFwsecCmd != NULL, NV_ERR_INVALID_STATE);
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 6\n");
 
             NV_ASSERT_OK_OR_RETURN(kflcnReset_HAL(pGpu, pKernelFalcon));
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 7v\n");
 
             status = kgspExecuteFwsec_HAL(pGpu, pKernelGsp, pKernelGsp->pPreparedFwsecCmd);
             portMemFree(pKernelGsp->pPreparedFwsecCmd);
             pKernelGsp->pPreparedFwsecCmd = NULL;
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 8\n");
+NV_PRINTF(LEVEL_ERROR, "status of kgspExecuteFwsec_HAL is %d\n", status);
 
             NV_ASSERT_OK_OR_RETURN(status);
         }
-
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 9\n");
         NV_ASSERT_OK_OR_RETURN(kflcnResetIntoRiscv_HAL(pGpu, pKernelFalcon));
-
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 10\n");
         // Load init args into mailbox regs
         kgspProgramLibosBootArgsAddr_HAL(pGpu, pKernelGsp);
     }
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 11\n");
 
     // Execute Booter Load
     status = kgspExecuteBooterLoad_HAL(pGpu, pKernelGsp,
@@ -539,6 +551,7 @@ kgspBootstrap_TU102
         NV_PRINTF(LEVEL_ERROR, "failed to execute Booter Load (ucode for initial boot): 0x%x\n", status);
         return status;
     }
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 12\n");
 
     // Program FALCON_OS
     RM_RISCV_UCODE_DESC *pRiscvDesc = pKernelGsp->pGspRmBootUcodeDesc;
@@ -547,7 +560,7 @@ kgspBootstrap_TU102
     // Ensure the CPU is started
     if (kflcnIsRiscvActive_HAL(pGpu, pKernelFalcon))
     {
-        NV_PRINTF(LEVEL_INFO, "GSP ucode loaded and RISCV started.\n");
+        NV_PRINTF(LEVEL_ERROR, "GSP ucode loaded and RISCV started.\n");
     }
     else
     {
@@ -556,7 +569,7 @@ kgspBootstrap_TU102
         return NV_ERR_NOT_READY;
     }
 
-    NV_PRINTF(LEVEL_INFO, "Waiting for GSP fw RM to be ready...\n");
+    NV_PRINTF(LEVEL_ERROR, "Waiting for GSP fw RM to be ready...\n");
 
     //
     // For normal boot, link the status queue.
@@ -564,10 +577,17 @@ kgspBootstrap_TU102
     //
     if (bootMode == KGSP_BOOT_MODE_NORMAL)
     {
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 13\n");
+
         NV_ASSERT_OK_OR_RETURN(GspStatusQueueInit(pGpu, &pKernelGsp->pRpc->pMessageQueueInfo));
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 14\n");
+
     }
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 15\n");
 
     NV_ASSERT_OK_OR_RETURN(kgspWaitForRmInitDone(pGpu, pKernelGsp));
+    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 16\n");
+
 
     NV_PRINTF(LEVEL_INFO, "GSP FW RM ready.\n");
 

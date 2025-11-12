@@ -480,7 +480,7 @@ NV_STATUS osMapSystemMemory
     NvU64 pageIndex;
     NvU32 pageOffset = (Offset & ~os_page_mask);
 
-	NV_PRINTF(LEVEL_ERROR, "inside osMapSystemMemory offset: %llu\n, size: %llu \n, pAddress: %p, pPriv: %p\n", Offset, Length, ppAddress, ppPrivate);
+	//NV_PRINTF(LEVEL_ERROR, "inside osMapSystemMemory offset: %llu\n, size: %llu \n, pAddress: %p, pPriv: %p\n", Offset, Length, ppAddress, ppPrivate);
 
 
 
@@ -509,18 +509,18 @@ NV_STATUS osMapSystemMemory
 
     pageIndex = (Offset >> os_page_shift);
 
-	NV_PRINTF(LEVEL_ERROR, "pageIndex %llu\n", pageIndex);
+	//NV_PRINTF(LEVEL_ERROR, "pageIndex %llu\n", pageIndex);
 
     pAllocPrivate = memdescGetMemData(pMemDesc);
     if (!pAllocPrivate)
     {
-        NV_PRINTF(LEVEL_ERROR, "pAllocPrivate is NULL!\n");
+        //NV_PRINTF(LEVEL_ERROR, "pAllocPrivate is NULL!\n");
         return NV_ERR_INVALID_STATE;
     }
 
     if (Kernel)
     {
-		 NV_PRINTF(LEVEL_ERROR, "osMapSystemMemory is using kernel space \n");
+	//	 NV_PRINTF(LEVEL_ERROR, "osMapSystemMemory is using kernel space \n");
 
         pAddress = nv_alloc_kernel_mapping(nv, pAllocPrivate,
                 pageIndex, pageOffset, Length, &pPrivate);
@@ -532,18 +532,18 @@ NV_STATUS osMapSystemMemory
         }
         else
         {
-			NV_PRINTF(LEVEL_ERROR, "ppAddress is %p\n", *ppAddress);
-			NV_PRINTF(LEVEL_ERROR, "ppPrivate is %p\n", *ppPrivate);
+	//		NV_PRINTF(LEVEL_ERROR, "ppAddress is %p\n", *ppAddress);
+	//		NV_PRINTF(LEVEL_ERROR, "ppPrivate is %p\n", *ppPrivate);
 
             *ppAddress = NV_PTR_TO_NvP64(pAddress);
             *ppPrivate = NV_PTR_TO_NvP64(pPrivate);
-			NV_PRINTF(LEVEL_ERROR, "ppAddress is %p\n", *ppAddress);
-			NV_PRINTF(LEVEL_ERROR, "ppPrivate is %p\n", *ppPrivate);
+	//		NV_PRINTF(LEVEL_ERROR, "ppAddress is %p\n", *ppAddress);
+	//		NV_PRINTF(LEVEL_ERROR, "ppPrivate is %p\n", *ppPrivate);
         }
     }
     else
     {
-		 NV_PRINTF(LEVEL_ERROR, "osMapSystemMemory is using user space \n");
+	//	 NV_PRINTF(LEVEL_ERROR, "osMapSystemMemory is using user space \n");
         rmStatus = nv_alloc_user_mapping(nv, pAllocPrivate,
                 pageIndex, pageOffset, Length, Protect, &userAddress,
                 &pPrivate);
@@ -554,8 +554,8 @@ NV_STATUS osMapSystemMemory
         }
         else
         {
-			NV_PRINTF(LEVEL_ERROR, "ppAddress is %p\n", *ppAddress);
-			NV_PRINTF(LEVEL_ERROR, "ppPrivate is %p\n", *ppPrivate);
+	//		NV_PRINTF(LEVEL_ERROR, "ppAddress is %p\n", *ppAddress);
+	//		NV_PRINTF(LEVEL_ERROR, "ppPrivate is %p\n", *ppPrivate);
 
             *ppAddress = (NvP64)(userAddress);
             *ppPrivate = NV_PTR_TO_NvP64(pPrivate);

@@ -1817,7 +1817,7 @@ memdescMap
 
     NV_ASSERT_OR_RETURN(!memdescHasSubDeviceMemDescs(pMemDesc), NV_ERR_INVALID_OBJECT_BUFFER);
 
-	NV_PRINTF(LEVEL_ERROR, "inside memdescMap \n");
+//	NV_PRINTF(LEVEL_ERROR, "inside memdescMap \n");
     switch (pMemDesc->_addressSpace)
     {
         case ADDR_SYSMEM:
@@ -1826,14 +1826,14 @@ memdescMap
             status = osMapSystemMemory(pMemDesc, Offset, Size,
                                        Kernel, Protect, pAddress, pPriv);
 
-NV_PRINTF(LEVEL_ERROR, "osMapSystemMemory EGM offset: %llu\n, size: %llu \n, pAddress: %p, pPriv: %p\n", Offset, Size, pAddress, pPriv);
-				NV_PRINTF(LEVEL_ERROR, "ADDR_EGM status %d\n",status);
+//NV_PRINTF(LEVEL_ERROR, "osMapSystemMemory EGM offset: %llu\n, size: %llu \n, pAddress: %p, pPriv: %p\n", Offset, Size, pAddress, pPriv);
+				//NV_PRINTF(LEVEL_ERROR, "ADDR_EGM status %d\n",status);
             if (status != NV_OK)
             {
-				NV_PRINTF(LEVEL_ERROR, "ADDR_EGM status is not okay\n");
+				//NV_PRINTF(LEVEL_ERROR, "ADDR_EGM status is not okay\n");
                 return status;
             }
-				NV_PRINTF(LEVEL_ERROR, "ADDR_EGM status is okay\n");
+				//NV_PRINTF(LEVEL_ERROR, "ADDR_EGM status is okay\n");
             break;
         }
 
@@ -2184,7 +2184,7 @@ memdescMapInternal
     // Reflected BAR mappings will access memory via GPU, and hence go through GPU L2 cache.
     if (mapType == MEMDESC_MAP_INTERNAL_TYPE_SYSMEM_DIRECT){
         memdescFlushGpuCaches(pGpu, pMemDesc);
-		NV_PRINTF(LEVEL_ERROR, "map type is %d\n", MEMDESC_MAP_INTERNAL_TYPE_SYSMEM_DIRECT);
+		//NV_PRINTF(LEVEL_ERROR, "map type is %d\n", MEMDESC_MAP_INTERNAL_TYPE_SYSMEM_DIRECT);
 		}
 
     if (pMemDesc->_pInternalMapping != NULL)
@@ -2212,7 +2212,7 @@ memdescMapInternal
             status = memdescMapOld(pMemDesc, 0, pMemDesc->Size, NV_TRUE, NV_PROTECT_READ_WRITE,
                                    &pMemDesc->_pInternalMapping, &pMemDesc->_pInternalMappingPriv);
             NV_CHECK_OR_RETURN(LEVEL_ERROR, status == NV_OK, NULL);
-			NV_PRINTF(LEVEL_ERROR, "memdescMapOld status is %d\n", status);
+			//NV_PRINTF(LEVEL_ERROR, "memdescMapOld status is %d\n", status);
             break;
         }
         case MEMDESC_MAP_INTERNAL_TYPE_COHERENT_FBMEM:

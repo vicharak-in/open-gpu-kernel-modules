@@ -3506,12 +3506,16 @@ _kgspPrepareScrubberImageIfNeeded(OBJGPU *pGpu, KernelGsp *pKernelGsp)
     NV_PRINTF(LEVEL_ERROR, "pre-scrubbed memory: 0x%llx bytes, needed: 0x%llx bytes\n",
               prescrubbedSize, neededSize);
 
+    NV_STATUS image_support = kgspIsScrubberImageSupported(pGpu, pKernelGsp);
+    NV_PRINTF(LEVEL_ERROR, "image support status is %d\n", image_support);
     // WAR for Bug 5016200 - Always run scrubber from kernel RM for ADA config
     if ((neededSize > prescrubbedSize) || kgspIsScrubberImageSupported(pGpu, pKernelGsp)){
 	
+	    NV_PRINTF(LEVEL_ERROR, "neededSize is greater than prescrubbedSize\n");
         NV_CHECK_OK_OR_RETURN(LEVEL_ERROR,
             kgspAllocateScrubberUcodeImage(pGpu, pKernelGsp, &pKernelGsp->pScrubberUcode));
 }
+	    NV_PRINTF(LEVEL_ERROR, "neededSize is less than prescrubbedSize\n");
     return NV_OK;
 }
 
@@ -3988,8 +3992,13 @@ NV_PRINTF(LEVEL_ERROR, "kgspInitRm_IMPL 13 \n");
         // Note: _kgspBootGspRm() is structured such that gpusLockedMask will always be 0 (no GPU
         //       locks held) if the API lock is not held upon return.
         //
-        NV_ASSERT_OR_RETURN(rmapiLockIsOwner() && (gpusLockedMask != 0),
+        
+	NV_PRINTF(LEVEL_ERROR, "asserting rmapiLockIsOwner && gpusLockedMask != 0\n");
+	NV_ASSERT_OR_RETURN(rmapiLockIsOwner() && (gpusLockedMask != 0),
                             NV_ERR_INVALID_LOCK_STATE);
+	NV_PRINTF(LEVEL_ERROR, "asserting rmapiLockIsOwner done\n");
+	NV_PRINTF(LEVEL_ERROR, "bRetry = %d\n", bRetry);
+	NV_PRINTF(LEVEL_ERROR, "pKernelGsp->bootAttempts = %d\n", pKernelGsp->bootAttempts);
     } while (bRetry && (pKernelGsp->bootAttempts < maxGspBootAttempts));
 
     if (status != NV_OK)
@@ -5005,28 +5014,35 @@ kgspWaitForRmInitDone_IMPL
 )
 {
     OBJRPC *pRpc = pKernelGsp->pRpc;
-
+    NV_PRINTF(LEVEL_ERROR, "inside kgspWaitForRmInitDone_IMPL 1\n");
     //
     // Kernel RM can timeout when GSP-RM has an error condition.  Give GSP-RM
     // a chance to report the error before we pull the rug out from under it.
     //
     threadStateResetTimeout(pGpu);
+    NV_PRINTF(LEVEL_ERROR, "inside kgspWaitForRmInitDone_IMPL 2\n");
 
     NV_CHECK_OK_OR_RETURN(LEVEL_ERROR,
         rpcRecvPoll(pGpu, pRpc, NV_VGPU_MSG_EVENT_GSP_INIT_DONE, 0));
+    NV_PRINTF(LEVEL_ERROR, "inside kgspWaitForRmInitDone_IMPL 3\n");
 
     //
     // Now check if RPC really succeeded (NV_VGPU_MSG_RESULT_* are defined to
     // equivalent NV_STATUS codes in RM).
     //
     NV_ASSERT_OK_OR_RETURN(RPC_HDR->rpc_result);
+    NV_PRINTF(LEVEL_ERROR, "inside kgspWaitForRmInitDone_IMPL 4\n");
 
     pGpu->gspRmInitialized = NV_TRUE;
     if (hypervisorIsVgxHyper() && pGpu->getProperty(pGpu, PDB_PROP_GPU_EXTENDED_GSP_RM_INITIALIZATION_TIMEOUT_FOR_VGX))
     {
         // Decrease timeout values for VGX driver
+	    NV_PRINTF(LEVEL_ERROR, "inside kgspWaitForRmInitDone_IMPL vgx bullshit\n");
+
         timeoutInitializeGpuDefault(&pGpu->timeoutData, pGpu);
     }
+    NV_PRINTF(LEVEL_ERROR, "inside kgspWaitForRmInitDone_IMPL 5\n");
+
 
     return NV_OK;
 }
