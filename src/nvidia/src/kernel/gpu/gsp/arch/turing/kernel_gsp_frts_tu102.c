@@ -188,6 +188,7 @@ s_vbiosPatchInterfaceData
     pIntFaceHdr = (FALCON_APPLICATION_INTERFACE_HEADER_V1 *) (pMappedData + interfaceOffset);
     if (pIntFaceHdr->entryCount < 2)
     {
+		NV_PRINTF(LEVEL_ERROR, "interface offset %u , pMappedData : %p \n", interfaceOffset, pMappedData);
         NV_PRINTF(LEVEL_ERROR, "too few interface entires found for FWSEC cmd 0x%x\n", cmd);
         return NV_ERR_INVALID_DATA;
     }
@@ -340,6 +341,9 @@ s_prepareForFwsec_TU102
 
     if (pFwsecUcode->bootType == KGSP_FLCN_UCODE_BOOT_FROM_HS)
     {
+		/*
+			Check where and how pFwSecUcode is initialized and then check its pUcodeMemDesc
+			member */
         KernelGspFlcnUcodeBootFromHs *pUcode = &pFwsecUcode->ucodeBootFromHs;
         NvU8 *pMappedImage;
         NvU8 *pMappedData;
@@ -382,7 +386,10 @@ s_prepareForFwsec_TU102
         {
             return NV_ERR_INVALID_OFFSET;
         }
-
+		/*
+		Now the is the mapped Image , now this contains the interface entries which are less in our case 
+		Check where pUcode->pUcodeMemDesc is set, 
+		*/
         pMappedImage = memdescMapInternal(pGpu, pUcode->pUcodeMemDesc, TRANSFER_FLAGS_NONE);
         if (pMappedImage == NULL)
         {
@@ -390,13 +397,15 @@ s_prepareForFwsec_TU102
         }
         pMappedData = pMappedImage + pUcode->dataOffset;
 
-		NV_PRINTF(LEVEL_ERROR, "calling s_vbiosPatchInterfaceData is %d\n", status);
+		NV_PRINTF(LEVEL_ERROR, "pUcode->data offset is %llu\n", pUcode->dataOffset);
+
+		NV_PRINTF(LEVEL_ERROR, "calling s_vbiosPatchInterfaceData from KGSP_FLCN_UCODE_BOOT_FROM_HS\n");
 
 
         status = s_vbiosPatchInterfaceData(pMappedData, pUcode->dmemSize, cmd,
                                            pCmdBuffer, cmdBufferSize, pUcode->interfaceOffset);
 
-		NV_PRINTF(LEVEL_ERROR, "status of v_biosPatch interface data is %d\n", status);
+		NV_PRINTF(LEVEL_ERROR, "status of v_biosPatch interface data from is KGSP_FLCN_UCODE_BOOT_FROM_HS is %d\n", status);
         portMemCopy(pMappedData + pUcode->hsSigDmemAddr, pUcode->sigSize,
                     ((NvU8 *) pUcode->pSignatures) + sigOffset, pUcode->sigSize);
 
@@ -425,10 +434,11 @@ s_prepareForFwsec_TU102
         {
             return NV_ERR_INSUFFICIENT_RESOURCES;
         }
+		NV_PRINTF(LEVEL_ERROR, "calling s_vbiosPatchInterfaceData  from KGSP_FLCN_UCODE_BOOT_WITH_LOADER\n");
 
         status = s_vbiosPatchInterfaceData(pMappedData, pUcode->dmemSize, cmd,
                                            pCmdBuffer, cmdBufferSize, pUcode->interfaceOffset);
-
+		NV_PRINTF(LEVEL_ERROR, "status of v_biosPatch interface data from KGSP_FLCN_UCODE_BOOT_WITH_LOADER is %d\n", status);
         memdescUnmapInternal(pGpu, pUcode->pDataMemDesc,
                             TRANSFER_FLAGS_DESTROY_MAPPING);
         pMappedData = NULL;
@@ -498,6 +508,8 @@ kgspExecuteFwsec_TU102
         NvU32 wpr2LoVal;
         NvU32 expectedLoVal;
 
+		NvU64 wpr2Val;
+
         data = GPU_REG_RD32(pGpu, NV_PBUS_VBIOS_SCRATCH(NV_VBIOS_FWSECLIC_SCRATCH_INDEX_0E));
         frtsErrCode = DRF_VAL(_VBIOS, _FWSECLIC, _FRTS_ERR_CODE, data);
         if (frtsErrCode != NV_VBIOS_FWSECLIC_FRTS_ERR_CODE_NONE)
@@ -506,10 +518,47 @@ kgspExecuteFwsec_TU102
             status = NV_ERR_GENERIC;
             goto out;
         }
+		data = GPU_REG_RD32(pGpu, NV_PFB_PRI_MMU_WPR2_ADDR_LO);
+		wpr2LoVal = DRF_VAL(_PFB, _PRI_MMU_WPR2_ADDR_LO, _VAL, data);
 
-        data = GPU_REG_RD32(pGpu, NV_PFB_PRI_MMU_WPR2_ADDR_HI);
-        wpr2HiVal = DRF_VAL(_PFB, _PRI_MMU_WPR2_ADDR_HI, _VAL, data);
-        if (wpr2HiVal == 0)
+		data = GPU_REG_RD32(pGpu, NV_PFB_PRI_MMU_WPR2_ADDR_HI);
+		wpr2HiVal = DRF_VAL(_PFB, _PRI_MMU_WPR2_ADDR_HI, _VAL, data);
+
+		/* Mask out reserved bits (lower 4) */
+		wpr2LoVal &= 0xFFFFFFF;   // keep bits 31:4
+		wpr2HiVal &= 0xFFFFFFF;   // keep bits 31:4
+		NV_PRINTF(LEVEL_ERROR, "wpr2LoVal is 0x%08x\n", wpr2LoVal);
+
+   		NV_PRINTF(LEVEL_ERROR, "wpr2HiVal is 0x%08x\n", wpr2HiVal);
+
+		/* Combine into 64-bit address */
+		wpr2Val = ((NvU64)wpr2HiVal << 32) | (NvU64)wpr2LoVal;
+
+		/* Log in hex for clarity */
+		NV_PRINTF(LEVEL_ERROR, "WPR2 full address: 0x%016llx\n", (unsigned long long)wpr2Val);
+		NV_PRINTF(LEVEL_ERROR, "ftrsOffset is: 0x%016llx\n", (unsigned long long)pPreparedCmd->frtsOffset >> NV_PFB_PRI_MMU_WPR2_ADDR_LO_ALIGNMENT);
+		NV_PRINTF(LEVEL_ERROR, "expectedLoVal is: 0x%08x\n", (NvU32) (pPreparedCmd->frtsOffset >> NV_PFB_PRI_MMU_WPR2_ADDR_LO_ALIGNMENT));
+
+		
+		/*
+			---------------------------------------------------
+		
+		setup the frtsOffset the the value in mmio registers so that they match
+		
+		*/
+		NvU64 lo = (NvU64) wpr2LoVal;
+		NvU64 hi = (NvU64) wpr2HiVal;
+
+		// If registers store full 32-bit halves (no implicit shift): 
+		pPreparedCmd->frtsOffset = ((hi << 32) | lo) << NV_PFB_PRI_MMU_WPR2_ADDR_LO_ALIGNMENT;
+
+	//	 If registers store address >> ALIGN_SHIFT (e.g., >> 8): 
+		//pPreparedCmd->frtsOffset = ((hi << 32) | lo) ALIGN_SHIFT;
+
+	/*
+			---------------------------------------------------
+		*/	
+        if (wpr2HiVal != 0)
         {
             NV_PRINTF(LEVEL_ERROR, "failed to execute FWSEC for FRTS: no initialized WPR2 found\n");
             status = NV_ERR_GENERIC;
@@ -519,7 +568,7 @@ kgspExecuteFwsec_TU102
         data = GPU_REG_RD32(pGpu, NV_PFB_PRI_MMU_WPR2_ADDR_LO);
         wpr2LoVal = DRF_VAL(_PFB, _PRI_MMU_WPR2_ADDR_LO, _VAL, data);
         expectedLoVal = (NvU32) (pPreparedCmd->frtsOffset >> NV_PFB_PRI_MMU_WPR2_ADDR_LO_ALIGNMENT);
-        if (wpr2LoVal != expectedLoVal)
+		if (wpr2LoVal != expectedLoVal)
         {
             NV_PRINTF(LEVEL_ERROR,
                       "failed to execute FWSEC for FRTS: WPR2 initialized at an unexpected location: 0x%08x (expected 0x%08x)\n",
@@ -527,7 +576,11 @@ kgspExecuteFwsec_TU102
             status = NV_ERR_GENERIC;
             goto out;
         }
-    }
+		else
+		{
+			NV_PRINTF(LEVEL_ERROR, "WPR2 is at expected location\n");
+		}
+	}
     else  // i.e. FALCON_APPLICATION_INTERFACE_DMEM_MAPPER_V3_CMD_SB
     {
         NvU32 data;
@@ -587,9 +640,18 @@ kgspPrepareForFwsecFrts_TU102
     KernelGspPreparedFwsecCmd *pPreparedCmd
 )
 {
-    return s_prepareForFwsec_TU102(pGpu, pKernelGsp, pFwsecUcode,
+
+NV_STATUS status;
+NV_PRINTF(LEVEL_ERROR, "inside kgspPrepareForFwsecFrts_TU102 \n");
+
+    status = s_prepareForFwsec_TU102(pGpu, pKernelGsp, pFwsecUcode,
                                    FALCON_APPLICATION_INTERFACE_DMEM_MAPPER_V3_CMD_FRTS,
                                    frtsOffset, pPreparedCmd);
+
+	NV_PRINTF(LEVEL_ERROR," inside kgspPrepareForFwsecFrts_TU102 status = %d\n", status);
+
+	return status;
+
 }
 
 /*!
@@ -609,7 +671,12 @@ kgspPrepareForFwsecSb_TU102
     KernelGspPreparedFwsecCmd *pPreparedCmd
 )
 {
-    return s_prepareForFwsec_TU102(pGpu, pKernelGsp, pFwsecUcode,
+	NV_STATUS status;
+	NV_PRINTF(LEVEL_ERROR, "inside kgspPrepareForFwsecSb_TU102 \n");
+    status = s_prepareForFwsec_TU102(pGpu, pKernelGsp, pFwsecUcode,
                                    FALCON_APPLICATION_INTERFACE_DMEM_MAPPER_V3_CMD_SB,
                                    0, pPreparedCmd);
+
+	NV_PRINTF(LEVEL_ERROR," inside kgspPrepareForFwsecSb_TU102 status = %d\n", status);
+	   return status;
 }
