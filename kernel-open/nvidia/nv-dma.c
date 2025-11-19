@@ -61,11 +61,18 @@ static NV_STATUS nv_dma_map_contig(
     NvU64 *va
 )
 {
-    *va = dma_map_page_attrs(dma_map->dev, dma_map->pages[0], 0,
+    /*
+     * Do not set DMA_ATTR_SKIP_CPU_SYNC here even if memory is "uncached".
+     * On Arm, we always allocate cacheable pages and then use aliased (vmap)
+     * uncached mappings when necessary. Without explicit flushing right after
+     * allocation, previous stale data in these backing pages could be evicted
+     * at any point and end up clobbering memory that was already written
+     * through the aliased mapping. Note that no flushing will be performed on
+     * cache-coherent hardware.
+     */
+    *va = dma_map_page(dma_map->dev, dma_map->pages[0], 0,
                              dma_map->page_count * PAGE_SIZE,
-                             DMA_BIDIRECTIONAL,
-                             (dma_map->cache_type == NV_MEMORY_UNCACHED) ?
-                              DMA_ATTR_SKIP_CPU_SYNC : 0);
+                             DMA_BIDIRECTIONAL);
     if (dma_mapping_error(dma_map->dev, *va))
     {
         return NV_ERR_OPERATING_SYSTEM;
@@ -93,7 +100,7 @@ static void nv_dma_unmap_contig(nv_dma_map_t *dma_map)
     dma_unmap_page_attrs(dma_map->dev, dma_map->mapping.contig.dma_addr,
                          dma_map->page_count * PAGE_SIZE,
                          DMA_BIDIRECTIONAL,
-                         (dma_map->cache_type == NV_MEMORY_UNCACHED) ?
+                         (dma_map->cache_type != NV_MEMORY_CACHED) ?
                           DMA_ATTR_SKIP_CPU_SYNC : 0);
 }
 
@@ -214,6 +221,7 @@ NV_STATUS nv_map_dma_map_scatterlist(nv_dma_map_t *dma_map)
     nv_dma_submap_t *submap;
     NvU64 i;
 
+    /* See the comment in nv_dma_map_contig() */
     NV_FOR_EACH_DMA_SUBMAP(dma_map, submap, i)
     {
         /* Imported SGTs will have already been mapped by the exporter. */
@@ -256,9 +264,11 @@ void nv_unmap_dma_map_scatterlist(nv_dma_map_t *dma_map)
             continue;
         }
 
-        dma_unmap_sg(dma_map->dev, submap->sgt.sgl,
+        dma_unmap_sg_attrs(dma_map->dev, submap->sgt.sgl,
                 submap->sgt.orig_nents,
-                DMA_BIDIRECTIONAL);
+                DMA_BIDIRECTIONAL,
+                (dma_map->cache_type != NV_MEMORY_CACHED) ?
+                 DMA_ATTR_SKIP_CPU_SYNC : 0);
     }
 }
 
