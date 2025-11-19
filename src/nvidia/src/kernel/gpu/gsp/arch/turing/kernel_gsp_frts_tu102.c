@@ -536,7 +536,7 @@ kgspExecuteFwsec_TU102
 
 		/* Log in hex for clarity */
 		NV_PRINTF(LEVEL_ERROR, "WPR2 full address: 0x%016llx\n", (unsigned long long)wpr2Val);
-		NV_PRINTF(LEVEL_ERROR, "ftrsOffset is: 0x%016llx\n", (unsigned long long)pPreparedCmd->frtsOffset >> NV_PFB_PRI_MMU_WPR2_ADDR_LO_ALIGNMENT);
+		NV_PRINTF(LEVEL_ERROR, "ftrsOffset is: 0x%016llx\n", (unsigned long long)pPreparedCmd->frtsOffset);
 		NV_PRINTF(LEVEL_ERROR, "expectedLoVal is: 0x%08x\n", (NvU32) (pPreparedCmd->frtsOffset >> NV_PFB_PRI_MMU_WPR2_ADDR_LO_ALIGNMENT));
 
 		

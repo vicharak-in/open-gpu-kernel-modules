@@ -197,7 +197,8 @@ void __nvoc_init_dataField_OBJGPU(OBJGPU *pThis) {
     // default
     else
     {
-        pThis->setProperty(pThis, PDB_PROP_GPU_PREINITIALIZED_WPR_REGION, NV_FALSE);
+		NV_PRINTF(LEVEL_ERROR, "setting wpr region preinitiazlied\n");
+        pThis->setProperty(pThis, PDB_PROP_GPU_PREINITIALIZED_WPR_REGION, NV_TRUE);
     }
 
     // NVOC Property Hal field -- PDB_PROP_GPU_BUG_3007008_EMULATE_VF_MMU_TLB_INVALIDATE

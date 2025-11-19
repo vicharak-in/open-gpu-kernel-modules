@@ -173,6 +173,7 @@ kgspExecuteHsFalcon_GA102
     NvU32 *pMailbox1
 )
 {
+	NV_PRINTF(LEVEL_ERROR, "inside kgspExecuteHsFalcon_GA102 1\n");
     NV_STATUS status;
     KernelGspFlcnUcodeBootFromHs *pUcode;
 
@@ -181,9 +182,12 @@ kgspExecuteHsFalcon_GA102
 
     NV_ASSERT_OR_RETURN(pFlcnUcode != NULL, NV_ERR_INVALID_ARGUMENT);
     NV_ASSERT_OR_RETURN(pKernelFlcn != NULL, NV_ERR_INVALID_STATE);
+	NV_PRINTF(LEVEL_ERROR, "inside kgspExecuteHsFalcon_GA102 2\n");
+
 
     NV_ASSERT_OR_RETURN(pKernelFlcn->bBootFromHs, NV_ERR_NOT_SUPPORTED);
     NV_ASSERT_OR_RETURN(pFlcnUcode->bootType == KGSP_FLCN_UCODE_BOOT_FROM_HS, NV_ERR_NOT_SUPPORTED);
+	NV_PRINTF(LEVEL_ERROR, "inside kgspExecuteHsFalcon_GA102 3\n");
 
     pUcode = &pFlcnUcode->ucodeBootFromHs;
 
@@ -191,6 +195,7 @@ kgspExecuteHsFalcon_GA102
 
     NV_ASSERT_OR_RETURN(memdescGetAddressSpace(pUcode->pUcodeMemDesc) == ADDR_SYSMEM,
                         NV_ERR_INVALID_ARGUMENT);
+	NV_PRINTF(LEVEL_ERROR, "inside kgspExecuteHsFalcon_GA102 4\n");
 
     kflcnDisableCtxReq_HAL(pGpu, pKernelFlcn);
 
@@ -199,6 +204,7 @@ kgspExecuteHsFalcon_GA102
     data = FLD_SET_DRF(_PFALCON, _FBIF_TRANSCFG, _TARGET, _COHERENT_SYSMEM, data);
     data = FLD_SET_DRF(_PFALCON, _FBIF_TRANSCFG, _MEM_TYPE, _PHYSICAL, data);
     GPU_REG_WR32(pGpu, pKernelFlcn->fbifBase + NV_PFALCON_FBIF_TRANSCFG(0 /* ctxDma */), data);
+	NV_PRINTF(LEVEL_ERROR, "inside kgspExecuteHsFalcon_GA102 5\n");
 
     // Prepare DMA command
     dmaCmd = 0;
@@ -215,6 +221,7 @@ kgspExecuteHsFalcon_GA102
         RmPhysAddr srcPhysAddr = memdescGetPhysAddr(pUcode->pUcodeMemDesc, AT_GPU, 0);
         srcPhysAddr = srcPhysAddr + pUcode->codeOffset - pUcode->imemVa;
 
+		NV_PRINTF(LEVEL_ERROR, "RM phy addr is : 0x%016llx \n", srcPhysAddr);
         NV_ASSERT_OK_OR_RETURN(
             s_dmaTransfer_GA102(pGpu, pKernelFlcn,
                                 pUcode->imemPa,    // dest
@@ -287,5 +294,6 @@ kgspExecuteHsFalcon_GA102
     if (pMailbox1 != NULL)
         *pMailbox1 = kflcnRegRead_HAL(pGpu, pKernelFlcn, NV_PFALCON_FALCON_MAILBOX1);
 
+	NV_PRINTF(LEVEL_ERROR, "status of kgspExecuteHsFalcon_GA102 is %d\n", status);
     return status;
 }

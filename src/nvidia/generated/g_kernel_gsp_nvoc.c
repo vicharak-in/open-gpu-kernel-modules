@@ -1290,20 +1290,24 @@ static void __nvoc_init_funcTable_KernelGsp_1(KernelGsp *pThis, GpuHalspecOwner 
     // kgspPrepareForFwsecSb -- halified (4 hals) body
     if (( ((rmVariantHal_HalVarIdx >> 5) == 0UL) && ((1UL << (rmVariantHal_HalVarIdx & 0x1f)) & 0x00000001UL) )) /* RmVariantHal: VF */ 
     {
+		NV_PRINTF(LEVEL_ERROR, "__kgspPrepareForFwsecSb__ = &kgspPrepareForFwsecSb_5baef9 \n");
         pThis->__kgspPrepareForFwsecSb__ = &kgspPrepareForFwsecSb_5baef9;
     }
     else
     {
         if (( ((chipHal_HalVarIdx >> 5) == 3UL) && ((1UL << (chipHal_HalVarIdx & 0x1f)) & 0x00005000UL) )) /* ChipHal: T234D | T264D */ 
         {
+					NV_PRINTF(LEVEL_ERROR, "__kgspPrepareForFwsecSb__ = &kgspPrepareForFwsecSb_5baef9 \n");
             pThis->__kgspPrepareForFwsecSb__ = &kgspPrepareForFwsecSb_5baef9;
         }
         else if (( ((chipHal_HalVarIdx >> 5) == 1UL) && ((1UL << (chipHal_HalVarIdx & 0x1f)) & 0x01f0ffe0UL) )) /* ChipHal: TU102 | TU104 | TU106 | TU116 | TU117 | GA100 | GA102 | GA103 | GA104 | GA106 | GA107 | AD102 | AD103 | AD104 | AD106 | AD107 */ 
         {
+		NV_PRINTF(LEVEL_ERROR, "__kgspPrepareForFwsecSb__ = &kgspPrepareForFwsecSb_TU102 \n");
             pThis->__kgspPrepareForFwsecSb__ = &kgspPrepareForFwsecSb_TU102;
         }
         else
         {
+		NV_PRINTF(LEVEL_ERROR, "__kgspPrepareForFwsecSb__ = &kgspPrepareForFwsecSb_395e98 \n");
             pThis->__kgspPrepareForFwsecSb__ = &kgspPrepareForFwsecSb_395e98;
         }
     }

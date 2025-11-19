@@ -3662,23 +3662,23 @@ _kgspBootGspRm(OBJGPU *pGpu, KernelGsp *pKernelGsp, GSP_FIRMWARE *pGspFw, GPU_MA
     NV_CHECK_OK_OR_RETURN(LEVEL_ERROR, kgspPopulateWprMeta_HAL(pGpu, pKernelGsp, pGspFw));
 
     {
-	NV_PRINTF(LEVEL_ERROR, "booting gspRM 3\n");
-
+		NV_PRINTF(LEVEL_ERROR, "booting gspRM 3\n");
         // If the new FB layout requires a scrubber ucode to scrub additional space, prepare it now
         NV_CHECK_OK_OR_RETURN(LEVEL_ERROR, _kgspPrepareScrubberImageIfNeeded(pGpu, pKernelGsp));
     }
 	NV_PRINTF(LEVEL_ERROR, "booting gspRM 4\n");
 
+	NV_PRINTF(LEVEL_ERROR, "fault alert\n");
     // Setup arguments for bootstrapping GSP
     NV_CHECK_OK_OR_RETURN(LEVEL_ERROR, kgspPrepareForBootstrap_HAL(pGpu, pKernelGsp, KGSP_BOOT_MODE_NORMAL));
-NV_PRINTF(LEVEL_ERROR, "booting gspRM 5\n");
+	NV_PRINTF(LEVEL_ERROR, "booting gspRM 5\n");
 
     // Release the API lock if relaxed locking for parallel init is enabled
     NvBool bRelaxedLocking = _kgspShouldRelaxGspInitLocking(pGpu);
-    if (bRelaxedLocking)
+    if (bRelaxedLocking){
         rmapiLockRelease();
-
-NV_PRINTF(LEVEL_ERROR, "booting gspRM 6\n");
+	}
+	NV_PRINTF(LEVEL_ERROR, "booting gspRM 6\n");
 
     if ((pKernelGsp->bootAttempts > 0) && bEccDisabled)
     {
@@ -3693,12 +3693,12 @@ NV_PRINTF(LEVEL_ERROR, "booting gspRM 6\n");
     // Proceed with GSP boot
     status = kgspBootstrap_HAL(pGpu, pKernelGsp, KGSP_BOOT_MODE_NORMAL);
 	NV_PRINTF(LEVEL_ERROR, "kgspBootstrap_HAL status is %d\n", status);
-NV_PRINTF(LEVEL_ERROR, "booting gspRM 7\n");
+	NV_PRINTF(LEVEL_ERROR, "booting gspRM 7\n");
 
     if (status != NV_OK && !pGpu->getProperty(pGpu, PDB_PROP_GPU_ZERO_FB))
     {
         // Increment the bootAttempt counter only on failure to boot GSP
-NV_PRINTF(LEVEL_ERROR, "booting gspRM 8\n");
+		NV_PRINTF(LEVEL_ERROR, "booting gspRM 8\n");
         pKernelGsp->bootAttempts++;
         if (gpuCheckEccCounts_HAL(pGpu) || (bEccDisabled && !hypervisorIsVgxHyper()))
         {
@@ -5335,6 +5335,7 @@ _kgspCalculateFwHeapSize
     {
         NvU64 fbSize = 0;
         NV_ASSERT_OK(kmemsysGetUsableFbSize_HAL(pGpu, pKernelMemorySystem, &fbSize));
+		NV_PRINTF(LEVEL_ERROR, "frame buffer size is 0x%016llx \n", fbSize);
         memSizeGB = (NvU32)(NV_ALIGN_UP64(fbSize, 1 << 30) >> 30);
     }
 
