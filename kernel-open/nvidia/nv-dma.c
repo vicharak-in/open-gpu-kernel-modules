@@ -880,17 +880,18 @@ void NV_API_CALL nv_dma_unmap_mmio
 }
 
 /*
- * Invalidate DMA mapping in CPU caches by "syncing" to the device.
+ * Flush/invalidate DMA mapping in CPU caches by "syncing" to the device.
  *
  * This is only implemented for ARM platforms, since other supported
  * platforms are cache coherent and have not required this (we
  * explicitly haven't supported SWIOTLB bounce buffering either where
  * this would be needed).
  */
-void NV_API_CALL nv_dma_cache_invalidate
+void NV_API_CALL nv_dma_sync
 (
     nv_dma_device_t *dma_dev,
-    void *priv
+    void *priv,
+    NvU32 dir
 )
 {
 #if defined(NVCPU_AARCH64)
@@ -898,10 +899,17 @@ void NV_API_CALL nv_dma_cache_invalidate
 
     if (dma_map->contiguous)
     {
-        dma_sync_single_for_device(dma_dev->dev,
-                                   dma_map->mapping.contig.dma_addr,
-                                   (size_t) PAGE_SIZE * dma_map->page_count,
-                                   DMA_FROM_DEVICE);
+        if (dir & NV_OS_DMA_SYNC_TO_DEVICE)
+            dma_sync_single_for_device(dma_dev->dev,
+                                       dma_map->mapping.contig.dma_addr,
+                                       (size_t)PAGE_SIZE * dma_map->page_count,
+                                       DMA_TO_DEVICE);
+
+        if (dir & NV_OS_DMA_SYNC_FROM_DEVICE)
+            dma_sync_single_for_cpu(dma_dev->dev,
+                                    dma_map->mapping.contig.dma_addr,
+                                    (size_t)PAGE_SIZE * dma_map->page_count,
+                                    DMA_FROM_DEVICE);
     }
     else
     {
@@ -910,10 +918,17 @@ void NV_API_CALL nv_dma_cache_invalidate
 
         NV_FOR_EACH_DMA_SUBMAP(dma_map, submap, i)
         {
-            dma_sync_sg_for_device(dma_dev->dev,
-                                   submap->sgt.sgl,
-                                   submap->sgt.orig_nents,
-                                   DMA_FROM_DEVICE);
+            if (dir & NV_OS_DMA_SYNC_TO_DEVICE)
+                dma_sync_sg_for_device(dma_dev->dev,
+                                       submap->sgt.sgl,
+                                       submap->sgt.orig_nents,
+                                       DMA_TO_DEVICE);
+
+            if (dir & NV_OS_DMA_SYNC_FROM_DEVICE)
+                dma_sync_sg_for_cpu(dma_dev->dev,
+                                    submap->sgt.sgl,
+                                    submap->sgt.orig_nents,
+                                    DMA_FROM_DEVICE);
         }
     }
 #endif

@@ -649,12 +649,10 @@ NV_STATUS __nvoc_objCreate_OBJOS(OBJOS**, Dynamic*, NvU32);
 NV_STATUS       addProbe(OBJGPU *, NvU32);
 
 
-typedef NV_STATUS  OSFlushCpuCache(void);
 
 typedef void       OSAddRecordForCrashLog(void *, NvU32);
 typedef void       OSDeleteRecordForCrashLog(void *);
 
-OSFlushCpuCache                  osFlushCpuCache;
 OSAddRecordForCrashLog           osAddRecordForCrashLog;
 OSDeleteRecordForCrashLog        osDeleteRecordForCrashLog;
 
@@ -793,6 +791,13 @@ NV_STATUS rm_is_vgpu_supported_device(OS_GPU_INFO *pNv, NvU32 pmc_boot_1,
                                       NvU32 pmc_boot_42);
 NV_STATUS osLockPageableDataSection(RM_PAGEABLE_SECTION   *pSection);
 NV_STATUS osUnlockPageableDataSection(RM_PAGEABLE_SECTION   *pSection);
+
+#define OS_DMA_SYNC_TO_DEVICE       NVBIT(0)                                          // CPU flush
+#define OS_DMA_SYNC_FROM_DEVICE     NVBIT(1)                                          // CPU invalidate
+#define OS_DMA_SYNC_TO_FROM_DEVICE  (OS_DMA_SYNC_TO_DEVICE | OS_DMA_SYNC_FROM_DEVICE) // CPU flush + invalidate
+
+NV_STATUS osDmaSyncMem(MEMORY_DESCRIPTOR *pMemDesc,
+                       NvU32 dir);
 
 void osFlushGpuCoherentCpuCacheRange(OS_GPU_INFO *pOsGpuInfo,
                                      NvU64 cpuVirtual,

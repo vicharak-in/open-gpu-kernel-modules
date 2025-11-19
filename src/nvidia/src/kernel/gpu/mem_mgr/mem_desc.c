@@ -2107,29 +2107,6 @@ memdescFlushGpuCaches
     }
 }
 
-void
-memdescFlushCpuCaches
-(
-    OBJGPU            *pGpu,
-    MEMORY_DESCRIPTOR *pMemDesc
-)
-{
-    // Flush WC to get the data written to this mapping out to memory
-    osFlushCpuWriteCombineBuffer();
-
-    KernelBif *pKernelBif = GPU_GET_KERNEL_BIF(pGpu);
-
-    // Special care is needed on SOC, where the GPU cannot snoop the CPU L2
-    if ((pKernelBif != NULL)                     &&
-        !kbifIsSnoopDmaCapable(pGpu, pKernelBif) &&
-        (memdescGetCpuCacheAttrib(pMemDesc) == NV_MEMORY_CACHED))
-    {
-        // Flush CPU L2 so that the GPU will see any changes the CPU made
-        osFlushCpuCache();
-    }
-}
-
-
 /*
  * @brief map memory descriptor for internal access
  *
@@ -2158,7 +2135,10 @@ memdescMapInternal
     // We need to flush & invalidate GPU L2 cache only for directed BAR mappings.
     // Reflected BAR mappings will access memory via GPU, and hence go through GPU L2 cache.
     if (mapType == MEMDESC_MAP_INTERNAL_TYPE_SYSMEM_DIRECT)
+    {
         memdescFlushGpuCaches(pGpu, pMemDesc);
+        osDmaSyncMem(pMemDesc, OS_DMA_SYNC_FROM_DEVICE);
+    }
 
     if (pMemDesc->_pInternalMapping != NULL)
     {
@@ -2234,7 +2214,7 @@ void memdescUnmapInternal
 
     if (mapType == MEMDESC_MAP_INTERNAL_TYPE_SYSMEM_DIRECT || mapType == MEMDESC_MAP_INTERNAL_TYPE_BAR2)
     {
-        memdescFlushCpuCaches(pGpu, pMemDesc);
+        osDmaSyncMem(pMemDesc, OS_DMA_SYNC_TO_DEVICE);
     }
 
     if (--pMemDesc->_internalMappingRefCount == 0)
