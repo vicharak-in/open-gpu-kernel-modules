@@ -908,6 +908,11 @@ NV_STATUS osAllocPagesInternal(
     memdescSetAddress(pMemDesc, NvP64_NULL);
     memdescSetMemData(pMemDesc, NULL, NULL);
 
+    //
+    // XXX: Is this a workaround for hardware with broken NoSnoop?
+    // If so, consider checking PDB_PROP_CL_NOSNOOP_NOT_CAPABLE and
+    // move this to memdescSetCpuCacheAttrib().
+    //
 #if (defined(NVCPU_AARCH64) && RMCFG_MODULE_CL)
     {
         OBJCL   *pCl       = SYS_GET_CL(pSys);

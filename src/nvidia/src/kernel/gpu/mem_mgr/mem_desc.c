@@ -38,6 +38,7 @@
 #include "mem_mgr/virt_mem_mgr.h"
 #include "core/system.h"
 #include "vgpu/vgpu_util.h"
+#include <platform/chipset/chipset.h>
 #include "platform/sli/sli.h"
 #include "resserv/rs_client.h"
 
@@ -3640,6 +3641,27 @@ void memdescSetCpuCacheAttrib
     NvU32 cpuCacheAttrib
 )
 {
+    //
+    // Use NV_MEMORY_DEFAULT to get a reasonable default caching type for the
+    // given descriptor (i.e. DMA coherent), unless explicit cache maintenance
+    // is done (for performance reasons) or there are certain memory requirements
+    // (e.g. atomics need NV_MEMORY_CACHED on Arm).
+    //
+    if (cpuCacheAttrib == NV_MEMORY_DEFAULT)
+    {
+        OBJCL *pCl = SYS_GET_CL(SYS_GET_INSTANCE());
+
+        if (memdescGetFlag(pMemDesc, MEMDESC_FLAGS_CPU_ONLY) ||
+            ((pCl != NULL) && pCl->getProperty(pCl, PDB_PROP_CL_IS_CHIPSET_IO_COHERENT)))
+        {
+            cpuCacheAttrib = NV_MEMORY_CACHED;
+        }
+        else
+        {
+            cpuCacheAttrib = NV_MEMORY_UNCACHED;
+        }
+    }
+
     //
     // When running 64-bit MODS on ARM v8, we need to force all CPU mappings as WC.
     // This seems to be an issue with glibc. See bug 1556221.
