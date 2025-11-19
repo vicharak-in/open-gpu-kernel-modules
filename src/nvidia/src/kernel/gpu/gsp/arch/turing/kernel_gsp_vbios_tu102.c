@@ -446,6 +446,7 @@ kgspExtractVbiosFromRom_TU102
     KernelGspVbiosImg **ppVbiosImg
 )
 {
+	NV_PRINTF(LEVEL_ERROR, "extracting VBIOS from ROM\n");
 
     NV_STATUS status = NV_OK;
 
@@ -459,6 +460,8 @@ kgspExtractVbiosFromRom_TU102
     NvU32 biosSize = s_getBaseBiosMaxSize_TU102(pGpu);
     NvU32 biosSizeFromRom;
     NvU32 expansionRomOffset;
+
+	NV_PRINTF(LEVEL_ERROR, "bios size is %u \n", biosSize);
 
     NV_ASSERT_OR_RETURN(!IS_VIRTUAL(pGpu), NV_ERR_NOT_SUPPORTED);
     NV_ASSERT_OR_RETURN(IS_GSP_CLIENT(pGpu), NV_ERR_NOT_SUPPORTED);
@@ -493,13 +496,16 @@ kgspExtractVbiosFromRom_TU102
     NV_ASSERT_OK_OR_GOTO(status, status, out);
     if (!IS_VALID_PCI_ROM_SIG(romSig))
     {
+		NV_PRINTF(LEVEL_ERROR, "Invalid PCI_ROM_SIG 1\n");
         NV_ASSERT_OK_OR_GOTO(status, s_romImgFindPciHeader_TU102(&src, &pciOffset), out);
 
         // Adjust base offset for PCI header
         src.baseOffset = pciOffset;
 
+		NV_PRINTF(LEVEL_ERROR, "Invalid PCI_ROM_SIG 2\n");
         romSig = s_romImgRead16(&src, OFFSETOF_PCI_EXP_ROM_SIG, &status);
         NV_ASSERT_OK_OR_GOTO(status, status, out);
+		NV_PRINTF(LEVEL_ERROR, "Invalid PCI_ROM_SIG 3\n");
     }
 
     if (!IS_VALID_PCI_ROM_SIG(romSig))
@@ -525,6 +531,8 @@ kgspExtractVbiosFromRom_TU102
 
     biosSize = biosSizeFromRom;
 
+	NV_PRINTF(LEVEL_ERROR, "XXX: vbios size is %u bytes\n", biosSize);
+
     // Copy to system memory and populate pVbiosImg
     {
         NvU32 i;
@@ -540,6 +548,7 @@ kgspExtractVbiosFromRom_TU102
         biosSizeAligned = biosSize & (~0x3);
         for (i = 0; i < biosSizeAligned; i += 4)
         {
+			//NV_PRINTF(LEVEL_ERROR, "XXX: Reading vbios word %u out of %u\n", i/4, biosSizeAligned/4);
             pImageDwords[i >> 2] = s_promRead32(pGpu, pciOffset + i);
         }
 

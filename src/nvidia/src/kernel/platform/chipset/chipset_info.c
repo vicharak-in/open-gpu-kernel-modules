@@ -1359,7 +1359,7 @@ Rockchip_RK3588_setupFunc
 )
 {
     // TODO Need to check if any more PDB properties should be set
-    pCl->setProperty(pCl, PDB_PROP_CL_IS_CHIPSET_IO_COHERENT, NV_FALSE);
+//    pCl->setProperty(pCl, PDB_PROP_CL_IS_CHIPSET_IO_COHERENT, NV_FALSE);
 
     return NV_OK;
 }

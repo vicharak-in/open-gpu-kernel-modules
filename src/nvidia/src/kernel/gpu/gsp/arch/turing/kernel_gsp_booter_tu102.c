@@ -50,12 +50,12 @@ s_executeBooterUcode_TU102
     mailbox0 = kflcnRegRead_HAL(pGpu, pKernelFlcn, NV_PFALCON_FALCON_MAILBOX0);
     mailbox1 = kflcnRegRead_HAL(pGpu, pKernelFlcn, NV_PFALCON_FALCON_MAILBOX1);
 
-    NV_PRINTF(LEVEL_INFO, "before Booter mailbox0 0x%08x, mailbox1 0x%08x\n", mailbox0, mailbox1);
+    NV_PRINTF(LEVEL_ERROR, "before Booter mailbox0 0x%08x, mailbox1 0x%08x\n", mailbox0, mailbox1);
 
-    mailbox0 = mailbox0Arg;
-    mailbox1 = mailbox1Arg;
+    //mailbox0 = mailbox0Arg;
+    //mailbox1 = mailbox1Arg;
 
-    NV_PRINTF(LEVEL_INFO, "starting Booter with mailbox0 0x%08x, mailbox1 0x%08x\n", mailbox0, mailbox1);
+    NV_PRINTF(LEVEL_ERROR, "starting Booter with mailbox0 0x%08x, mailbox1 0x%08x\n", mailbox0, mailbox1);
 
     pKernelGsp->bLibosLogsPollingEnabled = NV_FALSE;
 
@@ -65,7 +65,7 @@ s_executeBooterUcode_TU102
 
     pKernelGsp->bLibosLogsPollingEnabled = NV_TRUE;
 
-    NV_PRINTF(LEVEL_INFO, "after Booter mailbox0 0x%08x, mailbox1 0x%08x\n", mailbox0, mailbox1);
+    NV_PRINTF(LEVEL_ERROR, "after Booter mailbox0 0x%08x, mailbox1 0x%08x\n", mailbox0, mailbox1);
 
     if (status != NV_OK)
     {
@@ -107,7 +107,7 @@ kgspExecuteBooterLoad_TU102
         mailbox1 = NvU64_HI32(sysmemAddrOfData);
     }
 
-    NV_PRINTF(LEVEL_INFO, "executing Booter Load, sysmemAddrOfData 0x%llx\n",
+    NV_PRINTF(LEVEL_ERROR, "executing Booter Load, sysmemAddrOfData 0x%llx\n",
               sysmemAddrOfData);
 
     NV_ASSERT_OK_OR_RETURN(kflcnReset_HAL(pGpu, staticCast(pKernelSec2, KernelFalcon)));

@@ -418,7 +418,9 @@ kgspPrepareForBootstrap_TU102
     // Prepare to execute FWSEC to setup FRTS if we have a FRTS region
     // Note: for resume and GC6 exit, FRTS is restored by Booter not FWSEC
     //
-    if ((bootMode == KGSP_BOOT_MODE_NORMAL) &&
+
+	NV_PRINTF(LEVEL_ERROR, "inside kgspPrepareForBootstrap_TU102 \n");
+	if ((bootMode == KGSP_BOOT_MODE_NORMAL) &&
         (kgspGetFrtsSize_HAL(pGpu, pKernelGsp) > 0))
     {
         pKernelGsp->pPreparedFwsecCmd = portMemAllocNonPaged(sizeof(KernelGspPreparedFwsecCmd));
@@ -428,11 +430,15 @@ kgspPrepareForBootstrap_TU102
                                              pKernelGsp->pPreparedFwsecCmd);
         if (status != NV_OK)
         {
+			
+			NV_PRINTF(LEVEL_ERROR, "inside kgspPrepareForBootstrap_TU102 status is not okay\n");
             portMemFree(pKernelGsp->pPreparedFwsecCmd);
             pKernelGsp->pPreparedFwsecCmd = NULL;
             return status;
         }
     }
+
+	NV_PRINTF(LEVEL_ERROR, "inside kgspPrepareForBootstrap_TU102 status is okay\n");
 
     return NV_OK;
 }
@@ -503,7 +509,7 @@ kgspBootstrap_TU102
     if (((bootMode == KGSP_BOOT_MODE_SR_RESUME) || (bootMode == KGSP_BOOT_MODE_NORMAL)) &&
         (pKernelGsp->pScrubberUcode != NULL))
     {
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 2v\n");
+		NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 2v\n");
         NV_ASSERT_OK_OR_RETURN(kgspExecuteScrubberIfNeeded_HAL(pGpu, pKernelGsp));
     }
     NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 3v\n");
@@ -514,30 +520,32 @@ kgspBootstrap_TU102
     //
     if (bootMode == KGSP_BOOT_MODE_NORMAL)
     {
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 4\n");
+		NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 4\n");
 
         // Execute FWSEC to setup FRTS if we have a FRTS region.
         if (kgspGetFrtsSize_HAL(pGpu, pKernelGsp) > 0)
         {
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 5\n");
+			NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 5\n");
 
             NV_ASSERT_OR_RETURN(pKernelGsp->pPreparedFwsecCmd != NULL, NV_ERR_INVALID_STATE);
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 6\n");
+			NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 6\n");
 
             NV_ASSERT_OK_OR_RETURN(kflcnReset_HAL(pGpu, pKernelFalcon));
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 7v\n");
+			NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 7v\n");
 
             status = kgspExecuteFwsec_HAL(pGpu, pKernelGsp, pKernelGsp->pPreparedFwsecCmd);
             portMemFree(pKernelGsp->pPreparedFwsecCmd);
             pKernelGsp->pPreparedFwsecCmd = NULL;
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 8\n");
-NV_PRINTF(LEVEL_ERROR, "status of kgspExecuteFwsec_HAL is %d\n", status);
+			NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 8\n");
+			NV_PRINTF(LEVEL_ERROR, "status of kgspExecuteFwsec_HAL is %d\n", status);
 
             NV_ASSERT_OK_OR_RETURN(status);
-        }
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 9\n");
+		}
+		NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 9\n");
+
         NV_ASSERT_OK_OR_RETURN(kflcnResetIntoRiscv_HAL(pGpu, pKernelFalcon));
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 10\n");
+
+		NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 10\n");
         // Load init args into mailbox regs
         kgspProgramLibosBootArgsAddr_HAL(pGpu, pKernelGsp);
     }
@@ -577,19 +585,19 @@ NV_PRINTF(LEVEL_ERROR, "status of kgspExecuteFwsec_HAL is %d\n", status);
     //
     if (bootMode == KGSP_BOOT_MODE_NORMAL)
     {
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 13\n");
+		NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 13\n");
 
         NV_ASSERT_OK_OR_RETURN(GspStatusQueueInit(pGpu, &pKernelGsp->pRpc->pMessageQueueInfo));
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 14\n");
+		NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 14\n");
 
     }
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 15\n");
+		NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 15\n");
 
-    NV_ASSERT_OK_OR_RETURN(kgspWaitForRmInitDone(pGpu, pKernelGsp));
-    NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 16\n");
+		NV_ASSERT_OK_OR_RETURN(kgspWaitForRmInitDone(pGpu, pKernelGsp));
+		NV_PRINTF(LEVEL_ERROR, "inside kgspBootstrap_TU102 16\n");
 
 
-    NV_PRINTF(LEVEL_INFO, "GSP FW RM ready.\n");
+		NV_PRINTF(LEVEL_INFO, "GSP FW RM ready.\n");
 
     return NV_OK;
 }
@@ -754,6 +762,7 @@ kgspPopulateWprMeta_TU102
     NV_ASSERT_OR_RETURN(pRiscvDesc != NULL, NV_ERR_INVALID_STATE);
 
     NV_ASSERT_OK_OR_RETURN(kmemsysGetUsableFbSize_HAL(pGpu, pKernelMemorySystem, &pWprMeta->fbSize));
+	NV_PRINTF(LEVEL_ERROR, "pWprMeta->fbSize is 0x%016llx \n", pWprMeta->fbSize);
 
     //
     // Start layout calculations at the top and work down.
@@ -829,7 +838,6 @@ kgspPopulateWprMeta_TU102
     // non-WPR heap and the start of WPR).
     //
     pWprMeta->gspFwWprStart = pWprMeta->gspFwHeapOffset - wprMetaSize;
-
     // Non WPR heap (1MB aligned)
     pWprMeta->nonWprHeapSize = nonWprHeapSize;
     pWprMeta->nonWprHeapOffset = pWprMeta->gspFwWprStart - pWprMeta->nonWprHeapSize;
@@ -839,6 +847,7 @@ kgspPopulateWprMeta_TU102
     // Physical address of GSP-RM firmware in system memory.
     pWprMeta->sysmemAddrOfRadix3Elf =
         memdescGetPhysAddr(pKernelGsp->pGspUCodeRadix3Descriptor, AT_GPU, 0);
+	
 
     // Physical address of boot loader firmware in system memory.
     pWprMeta->sysmemAddrOfBootloader =
@@ -881,7 +890,7 @@ kgspPopulateWprMeta_TU102
         pWprMeta->flags |= GSP_FW_FLAGS_CLOCK_BOOST;
     }
 
-#if 0
+#if 1
     NV_PRINTF(LEVEL_ERROR, "WPR meta data offset:     0x%016llx\n", pWprMeta->gspFwWprStart);
     NV_PRINTF(LEVEL_ERROR, "  magic:                  0x%016llx\n", pWprMeta->magic);
     NV_PRINTF(LEVEL_ERROR, "  revision:               0x%016llx\n", pWprMeta->revision);
