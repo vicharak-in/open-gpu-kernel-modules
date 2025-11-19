@@ -799,6 +799,8 @@ void osFlushGpuCoherentCpuCacheRange(OS_GPU_INFO *pOsGpuInfo,
                                      NvU64 size);
 NvBool osUidTokensEqual(PUID_TOKEN arg1, PUID_TOKEN arg2);
 
+NvBool osDevIsDmaCoherent(OBJGPU *pGpu);
+
 NV_STATUS osValidateClientTokens(PSECURITY_TOKEN  arg1,
                                  PSECURITY_TOKEN  arg2);
 PUID_TOKEN osGetCurrentUidToken(void);

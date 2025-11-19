@@ -1706,6 +1706,16 @@ void osFlushGpuCoherentCpuCacheRange
     nv_flush_coherent_cpu_cache_range(pOsGpuInfo, cpuVirtual, size);
 }
 
+NvBool osDevIsDmaCoherent
+(
+    OBJGPU  *pGpu
+)
+{
+    nv_state_t *nv = NV_GET_NV_STATE(pGpu);
+
+    return nv_dev_is_dma_coherent(nv->dma_dev);
+}
+
 void osErrorLogV(OBJGPU *pGpu, XidContext context, const char * pFormat, va_list arglist)
 {
     NV_STATUS        rmStatus;

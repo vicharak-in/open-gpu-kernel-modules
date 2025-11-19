@@ -909,6 +909,17 @@ void NV_API_CALL nv_dma_cache_invalidate
 #endif
 }
 
+NvBool NV_API_CALL nv_dev_is_dma_coherent
+(
+    nv_dma_device_t *dma_dev
+)
+{
+#if defined(NV_DEV_IS_DMA_COHERENT_PRESENT)
+    return dev_is_dma_coherent(dma_dev->dev);
+#endif
+    return true;
+}
+
 #if defined(NV_DRM_AVAILABLE)
 
 static inline void
